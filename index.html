@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <link rel="stylesheet" href="style.css">
+    
+</head>
+<body>
+    <div class="calculator">
+        <div class="display" id="display">0</div>
+        <div class="buttons">
+            <button class="clear" onclick="clearAll()">C</button>
+            <button class="clear" onclick="clearEntry()">CE</button>
+            <button class="operator" onclick="inputOperator('/')" data-key="/">÷</button>
+            <button class="operator" onclick="inputOperator('*')" data-key="*">×</button>
+            
+            <button onclick="inputNumber('7')" data-key="7">7</button>
+            <button onclick="inputNumber('8')" data-key="8">8</button>
+            <button onclick="inputNumber('9')" data-key="9">9</button>
+            <button class="operator" onclick="inputOperator('-')" data-key="-">-</button>
+            
+            <button onclick="inputNumber('4')" data-key="4">4</button>
+            <button onclick="inputNumber('5')" data-key="5">5</button>
+            <button onclick="inputNumber('6')" data-key="6">6</button>
+            <button class="operator" onclick="inputOperator('+')" data-key="+">+</button>
+            
+            <button onclick="inputNumber('1')" data-key="1">1</button>
+            <button onclick="inputNumber('2')" data-key="2">2</button>
+            <button onclick="inputNumber('3')" data-key="3">3</button>
+            <button class="equals" onclick="calculate()" data-key="Enter" rowspan="2">=</button>
+            
+            <button class="zero" onclick="inputNumber('0')" data-key="0">0</button>
+            <button onclick="inputDecimal()" data-key=".">.</button>
+        </div>
+        <div class="keyboard-hint">
+            Keyboard shortcuts: Numbers, +, -, *, /, Enter, Escape, Backspace
+        </div>
+    </div>
+
+    <script>
+        let currentInput = '0';
+        let previousInput = '';
+        let operator = '';
+        let waitingForOperand = false;
+
+        const display = document.getElementById('display');
+
+        function updateDisplay() {
+            display.textContent = currentInput;
+            display.classList.remove('error');
+        }
+
+        function inputNumber(num) {
+            if (waitingForOperand) {
+                currentInput = num;
+                waitingForOperand = false;
+            } else {
+                currentInput = currentInput === '0' ? num : currentInput + num;
+            }
+            updateDisplay();
+        }
+
+        function inputDecimal() {
+            if (waitingForOperand) {
+                currentInput = '0.';
+                waitingForOperand = false;
+            } else if (currentInput.indexOf('.') === -1) {
+                currentInput += '.';
+            }
+            updateDisplay();
+        }
+
+        function inputOperator(nextOperator) {
+            const inputValue = parseFloat(currentInput);
+
+            if (previousInput === '') {
+                previousInput = inputValue;
+            } else if (operator) {
+                const currentValue = previousInput || 0;
+                const newValue = performCalculation(currentValue, inputValue, operator);
+
+                if (newValue === null) return;
+
+                currentInput = String(newValue);
+                previousInput = newValue;
+                updateDisplay();
+            }
+
+            waitingForOperand = true;
+            operator = nextOperator;
+        }
+
+        function calculate() {
+            const inputValue = parseFloat(currentInput);
+
+            if (previousInput !== '' && operator) {
+                const newValue = performCalculation(previousInput, inputValue, operator);
+                
+                if (newValue === null) return;
+
+                currentInput = String(newValue);
+                previousInput = '';
+                operator = '';
+                waitingForOperand = true;
+                updateDisplay();
+            }
+        }
+
+        function performCalculation(firstOperand, secondOperand, operator) {
+            let result;
+            
+            switch (operator) {
+                case '+':
+                    result = firstOperand + secondOperand;
+                    break;
+                case '-':
+                    result = firstOperand - secondOperand;
+                    break;
+                case '*':
+                    result = firstOperand * secondOperand;
+                    break;
+                case '/':
+                    if (secondOperand === 0) {
+                        showError('Cannot divide by zero');
+                        return null;
+                    }
+                    result = firstOperand / secondOperand;
+                    break;
+                default:
+                    return null;
+            }
+
+            // Handle floating point precision
+            if (result % 1 !== 0) {
+                result = parseFloat(result.toFixed(10));
+            }
+
+            // Handle very large or very small numbers
+            if (!isFinite(result)) {
+                showError('Result too large');
+                return null;
+            }
+
+            return result;
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = '';
+            operator = '';
+            waitingForOperand = false;
+            updateDisplay();
+        }
+
+        function clearEntry() {
+            currentInput = '0';
+            updateDisplay();
+        }
+
+        function backspace() {
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        function showError(message) {
+            display.textContent = message;
+            display.classList.add('error');
+            setTimeout(() => {
+                clearAll();
+            }, 2000);
+        }
+
+        // Keyboard support
+        document.addEventListener('keydown', function(event) {
+            const key = event.key;
+            
+            // Prevent default behavior for calculator keys
+            if ('0123456789+-*/.='.includes(key) || key === 'Enter' || key === 'Escape' || key === 'Backspace') {
+                event.preventDefault();
+            }
+
+            // Visual feedback for pressed keys
+            const button = document.querySelector(`button[data-key="${key}"]`) || 
+                          document.querySelector(`button[data-key="Enter"]`);
+            
+            if (button) {
+                button.classList.add('pressed');
+                setTimeout(() => button.classList.remove('pressed'), 150);
+            }
+
+            // Handle key inputs
+            if ('0123456789'.includes(key)) {
+                inputNumber(key);
+            } else if (key === '.') {
+                inputDecimal();
+            } else if ('+-*/'.includes(key)) {
+                inputOperator(key);
+            } else if (key === 'Enter' || key === '=') {
+                calculate();
+            } else if (key === 'Escape') {
+                clearAll();
+            } else if (key === 'Backspace') {
+                backspace();
+            }
+        });
+
+        // Initialize display
+        updateDisplay();
+
+        // Add touch feedback for mobile
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('touchstart', function() {
+                this.classList.add('pressed');
+            });
+            
+            button.addEventListener('touchend', function() {
+                setTimeout(() => this.classList.remove('pressed'), 150);
+            });
+        });
+    </script>
+</body>
+</html>

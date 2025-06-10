@@ -111,7 +111,8 @@
         @media (max-width: 480px) {
             .calculator {
                 padding: 20px;
-                margin: 10px;
+                
+                /* margin: 10px; */
             }
             
             .display {
@@ -135,6 +136,7 @@
             color: rgba(255, 255, 255, 0.7);
             font-size: 0.9rem;
             margin-top: 15px;
+            display: none;
         }
 
         .pressed {
